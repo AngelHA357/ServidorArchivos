@@ -64,7 +64,7 @@ public class UDPClient {
             
             // Se envía confirmación de recibido
             byte[] ack = "ACK".getBytes();
-            DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, receivedPacket.getAddress(), receivedPacket.getPort());
+            DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, receivedPacket.getAddress(), 1002);
             udpSocket.send(ackPacket);
         }
         

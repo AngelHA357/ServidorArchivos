@@ -4,12 +4,13 @@
 
 package mx.edu.itson.udpclient;
 
-import java.io.DataInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -23,27 +24,27 @@ public class UDPClient {
         System.out.println("Solicita el archivo que deseas (con su extensión como .pdf, .txt...): ");
         String requiredFile = sca.nextLine();
         byte[] bytesToSend = requiredFile.getBytes();
-        
-        
+
         DatagramPacket sendPacket = new DatagramPacket(bytesToSend, bytesToSend.length, InetAddress.getLocalHost(), 1001);
         udpSocket.send(sendPacket);
-        
-        FileOutputStream receivedFile = new FileOutputStream(requiredFile);
+
+        RandomAccessFile receivedFile = new RandomAccessFile(requiredFile, "rw");
         byte[] bufferResponse = new byte[4096 + 10];
-        
+        Map<Integer, byte[]> outOfOrderPackets = new HashMap<>();
+
         while (true) {
             DatagramPacket receivedPacket = new DatagramPacket(bufferResponse, bufferResponse.length);
             udpSocket.receive(receivedPacket);
-            
+
             // Se verifica si es la señal END
             String potentialEOF = new String(receivedPacket.getData(), 0, receivedPacket.getLength());
             if (potentialEOF.equals("END")) {
                 break;
             }
-            
+
             byte[] receivedData = receivedPacket.getData();
             int length = receivedPacket.getLength();
-            
+
             // Encontrar el caracter ';' para separar la cabecera
             int headerEnd = -1;
             for (int i = 0; i < length; i++) {
@@ -52,22 +53,23 @@ public class UDPClient {
                     break;
                 }
             }
-            
+
             if (headerEnd != -1) {
                 // Se muestra el número de cada paquete de datos
-                String packetNumber = new String(receivedData, 0, headerEnd);
-                System.out.println("Recibido paquete #" + packetNumber);
-                
-                // Se escriben los datos
+                String packetNumberStr = new String(receivedData, 0, headerEnd);
+                int packetNumber = Integer.parseInt(packetNumberStr);
+
+                // Se escriben los datos en el archivo
+                receivedFile.seek(packetNumber * 4096);
                 receivedFile.write(receivedData, headerEnd + 1, length - (headerEnd + 1));
+
+                // Se envía confirmación de recibido
+                byte[] ack = (packetNumberStr + ";ACK").getBytes();
+                DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, receivedPacket.getAddress(), 1002);
+                udpSocket.send(ackPacket);
             }
-            
-            // Se envía confirmación de recibido
-            byte[] ack = "ACK".getBytes();
-            DatagramPacket ackPacket = new DatagramPacket(ack, ack.length, receivedPacket.getAddress(), 1002);
-            udpSocket.send(ackPacket);
         }
-        
+
         System.out.println("Archivo recibido.");
         receivedFile.close();
         udpSocket.close();

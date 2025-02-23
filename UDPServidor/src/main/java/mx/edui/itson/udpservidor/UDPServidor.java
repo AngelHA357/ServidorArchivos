@@ -1,15 +1,10 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
-
 package mx.edui.itson.udpservidor;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -25,8 +20,8 @@ public class UDPServidor {
         System.out.println("Servidor UDP esperando conexiones en el puerto " + 1001);
 
         Executor service = Executors.newCachedThreadPool();
-        
-        while(true) {
+
+        while (true) {
             service.execute(new Protocolo(socketInfo, socketAck));
         }
     }

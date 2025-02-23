@@ -6,8 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.net.SocketTimeoutException;
 
 /**
  *
@@ -58,16 +57,25 @@ public class Protocolo implements Runnable {
 
                     DatagramPacket sendPacket = new DatagramPacket(packetData, packetData.length, clientAddress, clientPort);
                     socketInfo.send(sendPacket);
-                    packetNumber++;
 
-                    // Se espera la confirmación del cliente (opcional, solo si quieres asegurar recepción)
-                    DatagramPacket ackPacket = new DatagramPacket(new byte[10], 10);
-                    socketInfo.setSoTimeout(100); // Evita que la espera del ACK bloquee la ejecución
-                    try {
-                        socketAck.receive(ackPacket);
-                    } catch (IOException e) {
-                        // Se ignora la excepción si no hay respuesta dentro del timeout
+                    // Esperar ACK con timeout
+                    boolean ackReceived = false;
+                    while (!ackReceived) {
+                        socketInfo.setSoTimeout(1000); // 1 segundo de timeout
+                        try {
+                            DatagramPacket ackPacket = new DatagramPacket(new byte[10], 10);
+                            socketAck.receive(ackPacket);
+                            String ackMessage = new String(ackPacket.getData(), 0, ackPacket.getLength());
+                            if (ackMessage.startsWith(packetNumber + ";ACK")) {
+                                ackReceived = true;
+                            }
+                        } catch (SocketTimeoutException e) {
+                            // Reenviar el paquete si no se recibe ACK
+                            socketInfo.send(sendPacket);
+                        }
                     }
+
+                    packetNumber++;
                 }
             }
 
@@ -78,8 +86,7 @@ public class Protocolo implements Runnable {
 
             System.out.println("Archivo enviado con éxito.");
         } catch (IOException ex) {
-            Logger.getLogger(Protocolo.class.getName()).log(Level.SEVERE, null, ex);
+            ex.printStackTrace();
         }
     }
-
 }

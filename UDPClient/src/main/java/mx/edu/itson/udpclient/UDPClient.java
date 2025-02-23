@@ -58,6 +58,7 @@ public class UDPClient {
                 // Se muestra el número de cada paquete de datos
                 String packetNumberStr = new String(receivedData, 0, headerEnd);
                 int packetNumber = Integer.parseInt(packetNumberStr);
+                System.out.println("Número de paquete: " + packetNumber);
 
                 // Se escriben los datos en el archivo
                 receivedFile.seek(packetNumber * 4096);

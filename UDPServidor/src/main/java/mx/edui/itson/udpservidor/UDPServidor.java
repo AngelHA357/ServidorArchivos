@@ -11,6 +11,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -18,16 +19,20 @@ import java.util.concurrent.Executors;
  * @author JoseH
  */
 public class UDPServidor {
-
     public static void main(String[] args) throws IOException {
         DatagramSocket socketInfo = new DatagramSocket(1001);
-        DatagramSocket socketAck = new DatagramSocket(1002);
-        System.out.println("Servidor UDP esperando conexiones en el puerto " + 1001);
+        DatagramSocket socketAck = new DatagramSocket(1002); // Creación única del socket de ACK
+        System.out.println("Servidor UDP esperando conexiones en el puerto 1001");
 
-        Executor service = Executors.newCachedThreadPool();
-        
-        while(true) {
-            service.execute(new Protocolo(socketInfo, socketAck));
+        ExecutorService service = Executors.newFixedThreadPool(50); 
+
+        while (true) {
+            byte[] buffer = new byte[1024];
+            DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
+            socketInfo.receive(requestPacket); // Espera solicitud
+
+            // Se crea un nuevo hilo solo cuando hay una solicitud
+            service.execute(new Protocolo(requestPacket, socketAck));
         }
     }
 }

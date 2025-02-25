@@ -57,6 +57,7 @@ public class UDPClient {
                 // Obtener número de paquete
                 String packetNumberStr = new String(receivedData, 0, headerEnd);
                 int packetNumber = Integer.parseInt(packetNumberStr.trim());
+                System.out.println("Paquete #" + packetNumber + " recibido.");
 
                 // Escribir los datos en la posición correcta
                 receivedFile.seek(packetNumber * 8192);
